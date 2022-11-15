@@ -1,50 +1,53 @@
-// 加载layui的form模块
-var form = layui.form;
+$(function(){
+    var form = layui.form
+    var layer = layui.layer
 
-$(function () { 
-
-    // 表单提交的时候，获取表单各项的值。提交给接口
-    $('.layui-form').on('submit', function (e) {
-        e.preventDefault();
-        // 获取输入框的信息
-        var data = $(this).serialize();
-        // 收集到了四项值；id、username、nickname、email
-        // console.log(data);
-        $.post('/my/userinfo', data, function (res) {
-            console.log(res);
-            // 修改失败，给出提示，终止程序执行
-            if (res.status !== 0) {
-                return layer.msg(res.message);
+    form.verify({
+        nickname:function(value){
+            if(value.length>6){
+                return '昵称长度必须在1~6个字符之间'
             }
-            // 如果成功了。从新获取用户信息，并渲染首页
-            // window是当前子页面的窗口
-            // parent 表示父窗口，即index.html
-            window.parent.getUserInfo();
-        });
-    });
-
-    // 给重置，注册事件
-    $('button[type=reset]').click(function (e) {
-        e.preventDefault(); // 不要清空
-        initUserInfo(); // 重新为表单赋值
-    });
-
-    // 打开基本资料页面后，首先就要获取用户的基本信息
-    // 并且把用户的信息，设置为input的value值
-    initUserInfo();
-});
-
-function initUserInfo () {
-    // 发送ajax请求
-    $.ajax({
-        url: '/my/userinfo',
-        success: function (res) {
-            // console.log(res);
-            // $('input[name="username"]').val(res.data.username);
-            // $('input[name="nickname"]').val(res.data.nickname);
-            // $('input[name="email"]').val(res.data.email);
-            // 使用layui的form模块，快速为表单赋值
-            form.val('f1', res.data);
         }
-    });
-}
+    })
+    initUserInfo()
+
+    //初始化用户信息
+    function initUserInfo(){
+        $.ajax({
+            method:'GET',
+            url:'/my/userinfo',
+            success:function(res){
+                if(res.status !== 0){
+                    return layer.msg('获取用户信息失败')
+                }
+                // console.log(res);
+                //调用form.val()快速为表单赋值
+                form.val('formUserInfo',res.data)
+            }
+        })
+    }
+    //重置表单的数据
+    $('#btnReset').on('click',function(e){
+        //阻止表单的默认重置行为
+        e.preventDefault();
+        initUserInfo();
+    })
+    //监听表单的提交事件
+    $('.layui-form').on('submit',function(e){
+        e.preventDefault();
+        //发起ajax数据请求
+        $.ajax({
+            method:'POST',
+            url:'/my/userinfo',
+            data:$(this).serialize(),
+            success:function(res){
+                if(res.status !== 0){
+                    return layer.msg('更新用户信息失败')
+                }
+                layer.msg('更新用户信息成功')
+                //调用父页面中的方法，重新渲染用户的头像和用户的信息
+                window.parent.getUserInfo()
+            }
+        })
+    })
+})
